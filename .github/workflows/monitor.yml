@@ -5,10 +5,11 @@ on:
       mode:
         description: 'Descobrir chat ID ou executar monitor'
         type: choice
-        options: [chat-id, monitor]
+        options: [chat-id, monitor, full-scan]
         default: monitor
   schedule:
     - cron: '17 */3 * * *'
+    - cron: '2-59/5 * * * *'
 permissions:
   contents: read
 concurrency:
@@ -16,6 +17,9 @@ concurrency:
   cancel-in-progress: false
 jobs:
   monitor:
+    # Consulta a cada 5 minutos somente em repositório público (runners padrão gratuitos).
+    # Mantém a varredura completa de 3 em 3 horas também no privado.
+    if: github.event_name != 'schedule' || github.event.schedule == '17 */3 * * *' || github.event.repository.private == false
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -38,11 +42,19 @@ jobs:
         if: inputs.mode != 'chat-id'
       - run: python -m playwright install --with-deps chromium
         if: inputs.mode != 'chat-id'
-      - run: python monitor.py
+      - name: Consultar catálogo
+        run: |
+          if [ "$SCAN_MODE" = 'full-scan' ] || [ "$SCHEDULE" = '17 */3 * * *' ]; then
+            python -u monitor.py
+          else
+            python -u fast_monitor.py
+          fi
         if: inputs.mode != 'chat-id'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || '2015789519' }}
+          SCAN_MODE: ${{ inputs.mode }}
+          SCHEDULE: ${{ github.event.schedule }}
       - uses: actions/cache/save@v4
         if: always() && inputs.mode != 'chat-id'
         with:
