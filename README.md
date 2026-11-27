@@ -1,40 +1,59 @@
-# CSSDeals → Telegram do Augusto
+# CSSDeals → Telegram
 
-Monitor ativado em 27/11/2026. Primeira varredura no GitHub concluída com sucesso: 190 anúncios compatíveis registrados, estado salvo e confirmação enviada pelo Telegram. Execução validada: https://github.com/augustosergiobauru-lgtm/Cssdeals-bot/actions/runs/45946190054
+Monitor separado de qualquer outro projeto. Token Telegram somente em GitHub Actions Secrets.
 
-Filtros: tênis EU 45 e 46; camisetas 2XL/XXL, 3XL/XXXL e 4XL/XXXXL.
-O filtro usa o tamanho anunciado, nunca preço ou números no título.
-Chinelos e sandálias com nomes reconhecidos são excluídos. Títulos genéricos
-ou em outros idiomas podem precisar de revisão: a categoria Shoes contém outros calçados.
+## Estado verificado em 27/11/2026
 
-O monitor abre o catálogo público com Chromium, percorre as páginas e envia
-texto, preço em yuan, tamanho, link e, quando acessível, foto para um único chat privado.
-Na primeira execução registra os itens existentes e envia apenas uma confirmação.
-Nas seguintes envia anúncios novos ou novos tamanhos, sem repetir os já registrados.
-Não monitora queda de preço nem garante estoque: o tamanho é o publicado no anúncio.
+- Varredura completa: sucesso, base inicial de 190 anúncios, envio Telegram e cache validados.
+- Consulta filtrada: sucesso em modo sem envio, 183 correspondências no instante do teste;
+  calçados em 8,6 segundos e camisetas em 12,9 segundos. Não é comparação simultânea de cobertura.
+- Teste rápido: https://github.com/augustosergiobauru-lgtm/Cssdeals-bot/actions/runs/45947576228
+- Filtros: EU 45/46; camisetas 2XL/XXL, 3XL/XXXL e 4XL/XXXXL.
+- O filtro depende do tamanho publicado, não garante estoque, e a categoria Shoes pode conter outros itens.
+
+## Agendamento e custo
+
+A varredura completa continua a cada três horas. A consulta rápida está preparada a cada
+cinco minutos (cron `2-59/5 * * * *`), mas o job só permite essa frequência em repositório
+público: enquanto privado, os eventos desse cron são ignorados sem iniciar runner.
+A visibilidade permanece privada; publicar código e histórico exige decisão do proprietário.
+
+O GitHub oferece runners padrão gratuitos para repositórios públicos.
+Runners maiores não são usados. No privado, as consultas completas consomem a franquia
+mensal da conta. Não foi alterado plano, faturamento, limite de gastos ou visibilidade.
+Não há garantia de pontualidade ou de aviso instantâneo: o agendamento GitHub pode atrasar.
+Não foi validada uma alternativa gratuita 24h com intervalo de segundos.
+
+A consulta rápida usa os controles normais de tamanho do site e percorre todas as páginas
+desses filtros. Não faz chamadas HTTP diretas fora do navegador. Tamanhos em texto livre
+que não aparecem nos controles podem depender da varredura completa complementar.
+A consulta direta de teste recebeu 403 e não é utilizada.
 
 ## Configuração
 
-1. Crie um repositório GitHub **privado e separado do Nexus Play** e envie estes arquivos,
-   incluindo `.github/workflows/monitor.yml`.
-2. Em Settings → Secrets and variables → Actions, adicione `TELEGRAM_BOT_TOKEN`.
-   O token não está incluído neste pacote; nunca o coloque em commits ou arquivos públicos.
-3. Para descobrir o ID do chat, abra Actions → CSSDeals Telegram → Run workflow e escolha
-   `chat-id`. Abra os logs da etapa “Descobrir ID privado”. Alternativamente, em um ambiente confiável
-   configure o token como variável de ambiente e execute `python monitor.py --chat-id`.
-   Se nenhum ID aparecer, envie `/start` de novo ao bot e repita. O comando não envia mensagens.
-4. O chat privado confirmado já está configurado no workflow. Para alterar o destinatário, defina `TELEGRAM_CHAT_ID` nos segredos; ele tem prioridade sobre o destino padrão.
-5. Execute Actions → CSSDeals Telegram → Run workflow e escolha `monitor`. Confira a confirmação no Telegram
-   e o resultado da execução. Só então considere o serviço ativado.
+O token fica em `TELEGRAM_BOT_TOKEN` nos segredos do repositório.
+O chat confirmado está configurado no workflow; `TELEGRAM_CHAT_ID` nos segredos permite
+substituir esse destino. O ID do chat não é token, mas aparece na configuração e no histórico.
 
-Agendamento ativo: `17 */3 * * *` (UTC), uma consulta a cada aproximadamente três horas, sujeita a atrasos do GitHub. Em Brasília: 00:17, 03:17, 06:17, 09:17, 12:17, 15:17, 18:17 e 21:17. A varredura inicial levou cerca de seis minutos.
-Verifique a franquia de Actions da conta antes de ativar; Chromium e varreduras completas
-consomem minutos e não há garantia de custo zero. Nenhuma assinatura paga é necessária no código.
-Sem o celular ligado após a hospedagem. O estado usa cache do GitHub: se o cache expirar
-ou for removido, a próxima execução cria nova base e não alerta sobre os itens daquele intervalo.
-Para serviço definitivo, substitua cache por armazenamento persistente.
+Actions → CSSDeals Telegram → Run workflow:
+- `monitor`: consulta filtrada.
+- `full-scan`: varredura completa.
+- `chat-id`: lista IDs privados que enviaram /start; não envia mensagens.
 
-## Execução e validação
+Nenhum token está nos arquivos versionados. Os segredos não são publicados junto com o código.
+Antes de tornar o repositório público, revise também histórico, logs e dados de configuração.
+
+## Comportamento
+
+A primeira execução registra a base e envia uma confirmação; não envia todos os anúncios.
+As próximas execuções enviam novos anúncios ou novos tamanhos com preço em yuan, link e
+foto quando disponível. Não monitora redução de preço.
+Ambos os coletores compartilham a mesma base SQLite e a mesma fila de execução para evitar duplicados.
+O cache é salvo mesmo após falha parcial de envio. Se expirar ou for removido, uma nova base
+será criada e as novidades daquele intervalo não serão enviadas retroativamente.
+Interrupção entre envio e gravação pode excepcionalmente repetir um aviso.
+
+## Desenvolvimento
 
 Python 3.12:
 
@@ -42,16 +61,10 @@ Python 3.12:
 pip install -r requirements.txt
 python -m playwright install --with-deps chromium
 python -m unittest -v
-python monitor.py --dry-run
-python monitor.py
+python fast_monitor.py --dry-run
+python fast_monitor.py
 ```
 
-`--dry-run` não envia alertas nem grava anúncios como vistos.
-`MAX_PAGES` limita páginas por categoria (padrão 100); atingir o limite interrompe a execução
-para evitar uma base incompleta. Falhas no catálogo não substituem o estado anterior.
-Falhas de envio mantêm o anúncio pendente para a próxima execução. Uma interrupção entre
-envio e gravação pode excepcionalmente repetir um alerta.
-
-Validação realizada: estrutura real dos cards e tamanhos lida no navegador; testes de
-tamanhos, exclusão de numeração fracionada, duplicação, primeira execução e reenvio após falha.
-A consulta HTTP direta do ambiente de desenvolvimento retornou 403, mas a varredura completa via Chromium no GitHub foi validada com sucesso, assim como o envio real ao Telegram. Alertas de novidades dependem da entrada de anúncios após a base inicial; a deduplicação foi validada em testes automatizados.
+`--dry-run` não envia Telegram nem marca anúncios como vistos.
+`MAX_PAGES` (padrão 100) limita as páginas por filtro; a varredura completa usa esse limite por categoria.
+Os testes locais cobrem tamanhos, números fracionados, exclusões, base inicial, duplicados e reenvio após falha.
