@@ -1,0 +1,51 @@
+name: CSSDeals Telegram
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Descobrir chat ID ou executar monitor'
+        type: choice
+        options: [chat-id, monitor]
+        default: chat-id
+  # Ativar somente após configurar os dois segredos e validar o primeiro envio:
+  # schedule:
+  #   - cron: '17,47 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: cssdeals-monitor
+  cancel-in-progress: false
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Descobrir ID privado
+        if: inputs.mode == 'chat-id'
+        run: python monitor.py --chat-id
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      - uses: actions/cache/restore@v4
+        if: inputs.mode != 'chat-id'
+        with:
+          path: data
+          key: cssdeals-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: cssdeals-state-
+      - run: pip install -r requirements.txt
+        if: inputs.mode != 'chat-id'
+      - run: python -m playwright install --with-deps chromium
+        if: inputs.mode != 'chat-id'
+      - run: python monitor.py
+        if: inputs.mode != 'chat-id'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      - uses: actions/cache/save@v4
+        if: always() && inputs.mode != 'chat-id'
+        with:
+          path: data
+          key: cssdeals-state-${{ github.run_id }}-${{ github.run_attempt }}
