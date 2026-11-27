@@ -13,10 +13,16 @@ Monitor separado de qualquer outro projeto. Token Telegram somente em GitHub Act
 
 ## Agendamento e custo
 
-A varredura completa continua a cada três horas. A consulta rápida está preparada a cada
-cinco minutos (cron `2-59/5 * * * *`), mas o job só permite essa frequência em repositório
-público: enquanto privado, os eventos desse cron são ignorados sem iniciar runner.
-A visibilidade permanece privada; publicar código e histórico exige decisão do proprietário.
+Repositório público após autorização explícita do proprietário em 27/11/2026.
+Consulta rápida habilitada a cada cinco minutos (cron `2-59/5 * * * *`).
+A varredura completa complementar continua a cada três horas. Se o repositório voltar
+para privado, os eventos do cron rápido são ignorados sem iniciar runner.
+
+Teste real após publicação: execução 45948157170 concluída com sucesso, 187
+correspondências, 29 avisos de anúncios ainda não registrados enviados, cache anterior
+recuperado e novo cache salvo. Leitura do catálogo: 10,0s para calçados e 13,8s para camisetas;
+a execução completa inclui preparação do navegador e tempo de envio Telegram.
+https://github.com/augustosergiobauru-lgtm/Cssdeals-bot/actions/runs/45948157170
 
 O GitHub oferece runners padrão gratuitos para repositórios públicos.
 Runners maiores não são usados. No privado, as consultas completas consomem a franquia
