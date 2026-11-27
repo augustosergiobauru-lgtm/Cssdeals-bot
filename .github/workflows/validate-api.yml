@@ -1,0 +1,30 @@
+name: CSSDeals fast API validation
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/validate-api.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read public size-filtered catalog
+        run: |
+          python -u - <<'PY'
+          import urllib.request,json,time
+          url='https://www.cssdeals.com/api/product?fields=1&categoryId=11&page=1&pageSize=20&priceMin=0.00&priceMax=9999.00&skuSize=45'
+          start=time.monotonic()
+          with urllib.request.urlopen(url,timeout=30) as response:
+              data=json.load(response)
+          print('Elapsed seconds:',round(time.monotonic()-start,2))
+          print('Envelope:',list(data))
+          result=data.get('data',{})
+          print('Data keys:',list(result))
+          print('Total:',result.get('total'))
+          print('Sample:',json.dumps(result.get('records',[])[:1],ensure_ascii=False))
+          PY
