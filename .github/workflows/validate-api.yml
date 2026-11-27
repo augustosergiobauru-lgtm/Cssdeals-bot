@@ -1,4 +1,4 @@
-name: CSSDeals fast API validation
+name: CSSDeals fast collector validation
 on:
   workflow_dispatch:
   push:
@@ -8,23 +8,13 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Read public size-filtered catalog
-        run: |
-          python -u - <<'PY'
-          import urllib.request,json,time
-          url='https://www.cssdeals.com/api/product?fields=1&categoryId=11&page=1&pageSize=20&priceMin=0.00&priceMax=9999.00&skuSize=45'
-          start=time.monotonic()
-          with urllib.request.urlopen(url,timeout=30) as response:
-              data=json.load(response)
-          print('Elapsed seconds:',round(time.monotonic()-start,2))
-          print('Envelope:',list(data))
-          result=data.get('data',{})
-          print('Data keys:',list(result))
-          print('Total:',result.get('total'))
-          print('Sample:',json.dumps(result.get('records',[])[:1],ensure_ascii=False))
-          PY
+      - run: pip install -r requirements.txt
+      - run: python -m playwright install --with-deps chromium
+      - name: Validate size-filtered collector without sending messages
+        run: python -u fast_monitor.py --dry-run
