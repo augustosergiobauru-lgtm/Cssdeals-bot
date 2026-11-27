@@ -7,12 +7,8 @@ on:
         type: choice
         options: [chat-id, monitor]
         default: monitor
-  push:
-    branches: [main]
-    paths: ['monitor.py', '.github/workflows/monitor.yml']
-  # Ativar somente após validar a primeira varredura:
-  # schedule:
-  #   - cron: '17,47 * * * *'
+  schedule:
+    - cron: '17 */3 * * *'
 permissions:
   contents: read
 concurrency:
