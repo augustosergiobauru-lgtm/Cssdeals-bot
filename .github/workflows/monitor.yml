@@ -6,8 +6,11 @@ on:
         description: 'Descobrir chat ID ou executar monitor'
         type: choice
         options: [chat-id, monitor]
-        default: chat-id
-  # Ativar somente após configurar os dois segredos e validar o primeiro envio:
+        default: monitor
+  push:
+    branches: [main]
+    paths: ['monitor.py', '.github/workflows/monitor.yml']
+  # Ativar somente após validar a primeira varredura:
   # schedule:
   #   - cron: '17,47 * * * *'
 permissions:
@@ -43,7 +46,7 @@ jobs:
         if: inputs.mode != 'chat-id'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || '2015789519' }}
       - uses: actions/cache/save@v4
         if: always() && inputs.mode != 'chat-id'
         with:
